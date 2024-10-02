@@ -25,5 +25,6 @@ DF %>%
 # Visualize fitted values
 # Show residuals
 # Resample multiple times and show parameter distribution
+# Introduce a squared term in the simulated population and estimate the tipping point.
                 
               
