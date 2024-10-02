@@ -24,3 +24,6 @@ DF %>%
 # Estimate parameters of simple linear regression model using OLS
 # Visualize fitted values
 # Show residuals
+# Resample multiple times and show parameter distribution
+                
+              
