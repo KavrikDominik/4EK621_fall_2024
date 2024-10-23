@@ -1,0 +1,109 @@
+---
+title: "Interactive Data Visualization"
+format: html
+server: shiny
+---
+```{r setup, include=FALSE}
+#| context: setup
+# packages
+library(shiny)
+library(plotly)
+library(dplyr)
+library(ggplot2)
+library(broom)
+
+data <- read.csv("full_data.csv")
+
+regressors <- c("combi", "km", "fuel", "age", "displacement", "model")
+
+data <- data %>%
+  dplyr::select(any_of(c("price", regressors))) %>%
+  na.omit()
+
+```
+
+# {.main-body}
+```{r input-panel}
+fluidRow(
+  column(
+    3, # Set the width of the sidebar panel to 3 (out of 12 grid units)
+    sidebarPanel(
+      selectInput("selectedModel", "Select Model:",
+        choices = unique(data$model),
+        multiple = FALSE,
+        selectize = TRUE,
+        selected = unique(data$model)[1]
+      ),
+      selectInput("selectedVariable", "Choose Variable:",
+        choices = colnames(data), multiple = FALSE
+      )
+    )
+  ),
+  column(
+    9, # Set the width of the main panel to 9 (out of 12 grid units)
+    mainPanel(
+      tabsetPanel(
+        tabPanel(
+          "Visualizations", # Only one tab for visualization
+          h3("Histogram"),
+          plotlyOutput("histogramPlot"), # Output for the histogram
+          h3("Scatterplot against Price"),
+          plotlyOutput("scatterPlot"), # Output for the scatterplot
+          tableOutput("table") # Summary table for selected model
+        )
+      )
+    )
+  )
+)
+
+```
+
+
+```{r, echo=FALSE}
+#| context: server
+
+filteredData <- reactive({
+  data %>%
+    filter(model == input$selectedModel)
+})
+
+# Generate a scatterplot of the selected variable against price
+output$scatterPlot <- renderPlotly({
+  gg <- ggplot(filteredData(), aes_string(x = input$selectedVariable, y = "price")) +
+    geom_point(color = "darkred") +
+    geom_smooth(method = "lm", se = TRUE, color = "blue") +
+    theme_minimal() +
+    labs(x = input$selectedVariable, y = "Price", title = paste("Scatterplot of", input$selectedVariable, "vs Price"))
+
+  ggplotly(gg)
+})
+
+
+# Generate a histogram of the selected variable
+output$histogramPlot <- renderPlotly({
+  if (is.numeric(data[[input$selectedVariable]])) {
+    gg <- ggplot(filteredData(), aes_string(x = input$selectedVariable)) +
+      geom_histogram(fill = "blue", color = "white", alpha = 0.7) +
+      theme_minimal() +
+      labs(x = input$selectedVariable, y = "Count", title = paste("Histogram of", input$selectedVariable))
+  } else {
+    gg <- ggplot(filteredData(), aes_string(x = input$selectedVariable))
+  }
+  ggplotly(gg)
+})
+
+output$table <- renderTable({
+  filteredData() %>%
+    summarise(
+      min_price = min(price),
+      max_price = max(price),
+      mean_price = mean(price)
+    )
+})
+
+```
+
+
+
+
+
